@@ -1,56 +1,63 @@
-# Use the official Puppeteer image
-FROM ghcr.io/puppeteer/puppeteer:latest
+# Use the official NVIDIA CUDA image
+FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
 
-# Switch to root for package installation
-USER root
-
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Install Xvfb and other necessary packages
+# Install necessary dependencies for Puppeteer and GPU rendering
 RUN apt-get update && apt-get install -y \
-xvfb \
-    xorg \
-    gtk2-engines-pixbuf \
-    xfonts-base \
-    xfonts-100dpi \
-    xfonts-75dpi \
-    xfonts-scalable \
-    imagemagick \
-    x11-apps \
-    dbus-x11 \
-    libx11-dev \
-    libgdk-pixbuf2.0-0 \
-    libnss3 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libgdk-pixbuf2.0-0 \
-    libxss1 \
-    fonts-liberation \
-    xdg-utils \
-    wget \
     curl \
+    wget \
+    gnupg \
     ca-certificates \
-    libvulkan1 \
-    vulkan-tools \
-    mesa-vulkan-drivers \
+    libgbm-dev \
+    libnss3 \
+    libatk1.0-0 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libpango-1.0-0 \
+    libgtk-3-0 \
+    xdg-utils \
+    xvfb \
+    dbus \
     && rm -rf /var/lib/apt/lists/*
 
-# Set display environment variable
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PORT=8080 \
-    ANGLE_DEFAULT_PLATFORM=vulkan \
-    DISPLAY=:99 \
-    LIBGL_ALWAYS_SOFTWARE=0 \
-    LIBGL_ALWAYS_INDIRECT=0
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
 
+# Install Google Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
+    apt-get update && \
+    apt-get install -y google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy our application files
+# Verify Chrome installation
+RUN google-chrome --version
+
+# Install Puppeteer globally
+RUN npm install -g puppeteer@23.6.0
+
+# Set environment variables for GPU support
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,video \
+    DISPLAY=:99
+
+# Copy package files first (for better caching)
 COPY package.json package-lock.json ./
 RUN npm install
+
+# Copy the rest of the app
 COPY . .
 
-# Build the application
+# Build the app
 RUN npm run build
 
 # Make start script executable

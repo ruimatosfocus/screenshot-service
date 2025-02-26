@@ -16,18 +16,15 @@ export class ScreenshotService {
       '--disable-web-security',
       '--disable-dev-shm-usage',
       '--allow-insecure-localhost',
-      '--in-process-gpu',
       '--ignore-gpu-blocklist',
       '--no-zygote',
-      '--disable-software-rasterizer',
+      // '--disable-software-rasterizer',
       '--headless',
-      '--enable-gpu','--disable-gpu-sandbox', '--gl=egl-angle', '--angle=default','--enable-unsafe-webgpu',
-      '--enable-gpu-rasterization',
-      '--force-color-profile=srgb',
-      '--disable-color-correct-rendering=false',
-      '--color-profile=srgb',
-      '--force-raster-color-profile=srgb',
-      '--canvas-oop-rasterization'
+      '--enable-gpu','--disable-gpu-sandbox',
+      // '--gl=egl-angle', '--angle=default','--enable-unsafe-webgpu',
+      // '--enable-gpu-rasterization',
+      '--in-process-gpu',
+      '--enable-unsafe-swiftshader'
     ];
 
     // Add GPU flags based on environment
@@ -78,6 +75,7 @@ export class ScreenshotService {
       console.log('Page loaded, taking screenshot');
       const imageBuffer = await page.screenshot({ 
         type: 'png', 
+        omitBackground: true,
         fullPage: true
       });
 
