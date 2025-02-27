@@ -14,13 +14,14 @@ export class ScreenshotController {
 
   @Post('/screenshot')
   async getScreenshot(
-    @Body() body: { url: string; width: number; height: number },
+    @Body() body: { url: string; width: number; height: number; flags: string[] },
     @Res() res: Response,
   ): Promise<void> {
     const screenshot = await this.screenshotService.getScreenshot(
       body.url,
       body.width,
       body.height,
+      body.flags
     );
 
     res.setHeader('Content-Type', 'image/png');

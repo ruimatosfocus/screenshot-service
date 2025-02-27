@@ -7,8 +7,11 @@ PROJECT="virtual-venue-stg-7102ffeb"
 SERVICE_NAME="screenshot-service"
 
 # Build and deploy 
-docker build -t ${IMAGE_NAME}:latest . && \
-docker push ${IMAGE_NAME}:latest && \
+echo "Building and pushing Docker image..."
+docker build --platform="linux/amd64" -t ${IMAGE_NAME}:latest .
+docker push ${IMAGE_NAME}:latest 
+
+echo "Deploying to Cloud Run..."
 gcloud run deploy ${SERVICE_NAME} \
   --image=${IMAGE_NAME}:latest \
   --region=${REGION} \
