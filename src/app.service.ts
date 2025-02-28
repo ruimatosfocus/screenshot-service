@@ -1,11 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import puppeteer, { LaunchOptions, PuppeteerLaunchOptions } from 'puppeteer';
+import puppeteer, { LaunchOptions } from 'puppeteer';
+
+export interface ScreenshotOptions {
+  url: string;
+  width: number;
+  height: number;
+  flags: string[];
+  cookie: {
+    name: string;
+    value: string;
+    domain: string;
+  }
+}
 
 @Injectable()
 export class ScreenshotService {
  
-  public async getScreenshot(url: string, width: number, height: number, flags: string[] = []): Promise<Buffer> {
-    console.log('Starting screenshot process for URL:', url);
+  public async getScreenshot(options: ScreenshotOptions): Promise<Buffer> {
+    console.log('Starting screenshot process for URL:', options.url);
     console.log('Chrome path:', puppeteer.executablePath());
     // Base Chrome flags that work everywhere
     const baseArgs = [
@@ -17,17 +29,17 @@ export class ScreenshotService {
       '--allow-insecure-localhost',     // Allows invalid certificates for localhost
       '--no-zygote',                    // Disables the zygote process for better container compatibility
       '--headless',                     // Runs Chrome in headless mode (no GUI)
-      ...flags
+      ...options.flags
     ];
 
-    const options: LaunchOptions = {
+    const launchOptions: LaunchOptions = {
       headless: true,
       dumpio: true,
       args: baseArgs
     };
         
     console.log('Creating browser with options:', options);
-    const browser = await puppeteer.launch(options).catch(err => {
+    const browser = await puppeteer.launch(launchOptions).catch(err => {
       console.error('Browser launch error details:', {
         message: err.message,
         stack: err.stack,
@@ -35,6 +47,20 @@ export class ScreenshotService {
       });
       throw err;
     });
+
+    if (options.cookie) {
+      await browser.setCookie({
+        name: options.cookie.name,
+        value: options.cookie.value,
+        domain: options.cookie.domain,
+        path: '/',
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 days from now
+        httpOnly: true,
+        secure: true,
+        size: options.cookie.value.length,
+        session: false
+      });
+    }
 
     try {
       console.log('LD_LIBRARY_PATH:', process.env.LD_LIBRARY_PATH)
@@ -46,12 +72,13 @@ export class ScreenshotService {
 
       console.log('Setting viewport');
       await page.setViewport({ 
-        width: width || 1920, 
-        height: height || 1080, 
+        width: options.width || 1920, 
+        height: options.height || 1080, 
         deviceScaleFactor: 2,  // Reduced from 2 to avoid rendering issues
         hasTouch: false,
         isLandscape: true
       });
+
       
       console.log('Setting navigation timeout');
       page.setDefaultNavigationTimeout(0);
@@ -62,8 +89,8 @@ export class ScreenshotService {
         console.log('WebGL Vendor:', (window as any).WebGLRenderingContext?.prototype?.getParameter?.call?.(null, 0x1F00));
       });
       
-      console.log('Navigating to URL:', url);
-      await page.goto(url, {
+      console.log('Navigating to URL:', options.url);
+      await page.goto(options.url, {
         waitUntil: ['networkidle0', 'load', 'domcontentloaded'],
       });
       

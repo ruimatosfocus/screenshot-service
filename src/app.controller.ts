@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, HttpCode, Res } from '@nestjs/common';
 import { Response } from 'express';
-import { ScreenshotService } from './app.service';
+import { ScreenshotOptions, ScreenshotService } from './app.service';
 
 @Controller()
 export class ScreenshotController {
@@ -14,15 +14,10 @@ export class ScreenshotController {
 
   @Post('/screenshot')
   async getScreenshot(
-    @Body() body: { url: string; width: number; height: number; flags: string[] },
+    @Body() body: ScreenshotOptions,
     @Res() res: Response,
   ): Promise<void> {
-    const screenshot = await this.screenshotService.getScreenshot(
-      body.url,
-      body.width,
-      body.height,
-      body.flags
-    );
+    const screenshot = await this.screenshotService.getScreenshot(body);
 
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Disposition', 'inline');
